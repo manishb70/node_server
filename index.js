@@ -1,10 +1,10 @@
-import { DB_NAME } from "./constants.js";
+import { DB_NAME } from "./src/constants.js";
 import express from 'express';
 import mongoose, { mongo } from "mongoose";
-import connectDB from "./db/index.js";
-import { cloudinary, fileUploadCloudinary } from "./utils/cloudinary.js";
-import { upload } from "./middlware/multer.middleware.js";
-import { app } from "./app.js";
+import connectDB from "./src/db/index.js";
+import { cloudinary, fileUploadCloudinary } from "./src/utils/cloudinary.js";
+import { upload } from "./src/middlware/multer.middleware.js";
+import { app } from "./src/app.js";
 
 
 
@@ -18,7 +18,7 @@ connectDB()
             console.log(error);
             throw error
     })
-    app.listen(3000,(req,res)=>{
+    app.listen(8800 ||process.env.PORT ,(req,res)=>{
         console.log("server created success!!!!!!!!!");
         console.log(`server started on port ! :${process.env.PORT}`);
         })
