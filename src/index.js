@@ -11,16 +11,6 @@ import { app } from "./app.js";
 
 
 
-
-
-
-
-
-
-
-
-
-
 connectDB()
 .then(() => {
     console.log("connection success");
