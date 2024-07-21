@@ -4,6 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { fileUploadCloudinary } from "../utils/cloudinary.js";
+import jwt from "jsonwebtoken";
 
 
 
@@ -37,6 +38,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
         console.log("Plese provide all data");
         throw new ApiError(400, "All fields are mansatory")
+
     }
 
     const existUer = await User.findOne({
@@ -50,7 +52,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
 
     const avatarLocalPath = req.files?.avatar[0]?.path
-console.log(req.files?.avatar[0]?.path);
+    console.log(req.files?.avatar[0]?.path);
     const covereImageLocalPath = req.files?.coverImage[0]?.path
 
     if (!avatarLocalPath) {
@@ -71,7 +73,7 @@ console.log(req.files?.avatar[0]?.path);
         coverImage: coverImage?.url || "",
         username: username.toLowerCase(),
         email,
-        password:await password
+        password: await password
 
     })
 
@@ -84,11 +86,11 @@ console.log(req.files?.avatar[0]?.path);
         throw new ApiError(500, "something went wrong while registring the user")
     }
 
-console.log(createdUser);
+    console.log(createdUser);
 
-    return  res.status(201).json(
+    return res.status(201).json(
         new ApiResponse(200, createdUser, "User registred successfully",)
-     )
+    )
     //  return  res.status(201).json(createdUser)
 
 
@@ -122,11 +124,69 @@ console.log(createdUser);
 
 
 const userLogin = asyncHandler(async (req, res) => {
-    res.status(200).json({
-        code: 200,
-        message: "success"
-    })
+    //get username and password
+
+    const { username, password } = req.body
+
+    console.log(username + "\n", password);
+    // const user = await User.find({username,password})
+    const user = await User.findOne({ username })
+
+    // const {password}=user
+
+
+    if (!user) {
+        console.log("user not found");
+        // res.json(new ApiError(402,"User not found"))
+        res.json(new ApiResponse(401, "null", "user not found"))
+
+    }
+
+    const isPasswordValid = await user.isPasswordCorrect(password)
+
+
+    const refreshToken = await user.genreateRefreshToken()
+    const accessToken = await user.genreateAccessToken()
+    if (isPasswordValid) {
+        // const refreshToken = await user.genreateRefreshToken()
+        user.refreshToken = refreshToken
+        // user.accessToken = "accessToken"
+      
+    }
+
+
+    console.log("refreshToken :", refreshToken);
+    console.log("accessToken :", accessToken);
+
+
+    // console.log(refreshToken);
+    console.log(isPasswordValid);
+    // res.json(user.password)
+
+
+    console.log(
+        "end of the process"
+    );
+ 
+    const useTrue = await user.save()
+    console.log(useTrue);
+
+    console.log('Successfully log in');
+
+    
+    
+    console.log(user.refreshToken);
+    
+    const dt = jwt.verify(accessToken,process.env.ACCESS_TOKEN_SECRET)
+    console.log(dt);
+
+    const options = {
+        httpOnly:true,
+        secure:true
+    }
+    
+    res.cookie("accessToken",accessToken,options).json(
+        new ApiResponse(200, user, "User Verified successfully")
+    )
 })
-
-
 export { registerUser, userLogin }
