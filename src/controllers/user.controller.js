@@ -5,10 +5,31 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { fileUploadCloudinary } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
+import router from "../routes/user.route.js";
 
 
 
 
+const genreateAccessAndRefreshToken = async (userId) => {
+
+
+
+    try {
+        const user = await User.findById(userId)
+
+        const accessToken = await user.genreateAccessToken()
+        const refreshToken = await user.genreateRefreshToken()
+        user.refreshToken = refreshToken
+        await user.save({ validateBeforeSave: false })
+        console.log("success for JWT tokens");
+        return { accessToken, refreshToken }
+
+    } catch (error) {
+        throw new ApiError(500, "something went wrong while genrating the tokens")
+    }
+
+
+}
 
 
 
@@ -106,29 +127,12 @@ const registerUser = asyncHandler(async (req, res) => {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const userLogin = asyncHandler(async (req, res) => {
     //get username and password
 
     const { username, password } = req.body
 
-    console.log(username + "\n", password);
+    // console.log(username + "\n", password);
     // const user = await User.find({username,password})
     const user = await User.findOne({ username })
 
@@ -138,55 +142,88 @@ const userLogin = asyncHandler(async (req, res) => {
     if (!user) {
         console.log("user not found");
         // res.json(new ApiError(402,"User not found"))
-        res.json(new ApiResponse(401, "null", "user not found"))
+        res.json(new ApiResponse(404, "null", "user not found"))
 
     }
 
     const isPasswordValid = await user.isPasswordCorrect(password)
 
-
-    const refreshToken = await user.genreateRefreshToken()
-    const accessToken = await user.genreateAccessToken()
-    if (isPasswordValid) {
+    if (!isPasswordValid) {
         // const refreshToken = await user.genreateRefreshToken()
-        user.refreshToken = refreshToken
         // user.accessToken = "accessToken"
-      
+        throw new ApiError(404, "Your are password in not correct")
+
     }
 
-
-    console.log("refreshToken :", refreshToken);
-    console.log("accessToken :", accessToken);
 
 
     // console.log(refreshToken);
-    console.log(isPasswordValid);
+    console.log({
+        success: isPasswordValid
+    });
     // res.json(user.password)
 
+    const { refreshToken, accessToken } = await genreateAccessAndRefreshToken(user._id)
+    // console.log(useTrue);
 
-    console.log(
-        "end of the process"
-    );
- 
-    const useTrue = await user.save()
-    console.log(useTrue);
+    console.log('User authorized Success fully');
 
-    console.log('Successfully log in');
+    // console.log(user.refreshToken);
 
-    
-    
-    console.log(user.refreshToken);
-    
-    const dt = jwt.verify(accessToken,process.env.ACCESS_TOKEN_SECRET)
-    console.log(dt);
+    // const dt = jwt.verify(accessToken,process.env.ACCESS_TOKEN_SECRET)
+    // console.log(dt);
+    console.log("refreshToken :", refreshToken);
+    console.log("accessToken :", accessToken);
 
     const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+
+    await user.save()
+
+    const updatedUserInfo = await User.findById(user.id).select("-password -refreshToken")
+
+    res.cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options).json(
+            new ApiResponse(200, updatedUserInfo, "User Verified successfully")
+
+        )
+
+
+
+})
+
+
+
+
+const logoutUser = asyncHandler(async (req, res) => {
+
+
+    //   res.send(req.user._id) 
+    //   res.send("req.user ")
+    const user = await User.findByIdAndUpdate(req.user._id, {
+        $set: {
+            refreshToken: undefined
+        }
+    },
+        {
+            new: true
+        }
+    )
+
+
+    const options= {
         httpOnly:true,
         secure:true
     }
-    
-    res.cookie("accessToken",accessToken,options).json(
-        new ApiResponse(200, user, "User Verified successfully")
-    )
+    return res
+    .clearCookie("accessToken",options) 
+    .clearCookie("refreshToken",options) 
+    .json( new ApiResponse(200,{},"User Logout Successfull"))
 })
-export { registerUser, userLogin }
+
+
+
+export { registerUser, userLogin, logoutUser }

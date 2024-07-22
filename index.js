@@ -5,6 +5,11 @@ import connectDB from "./src/db/index.js";
 import { cloudinary, fileUploadCloudinary } from "./src/utils/cloudinary.js";
 import { upload } from "./src/middlware/multer.middleware.js";
 import { app } from "./src/app.js";
+import dotenv from "dotenv"
+
+dotenv.config({
+    path: './.env'
+})
 
 
 

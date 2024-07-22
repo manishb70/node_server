@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { registerUser, userLogin } from "../controllers/user.controller.js";
+import { logoutUser, registerUser, userLogin } from "../controllers/user.controller.js";
 import { upload } from "../middlware/multer.middleware.js";
 import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import {verifyJWT} from "../middlware/authUser.middleware.js";
 
 
 const router = Router()
@@ -61,6 +62,9 @@ console.log("!----------------Working-----------------!");
 
 })
 
+
+
+router.route("/logout").get( verifyJWT,logoutUser)
 
 
 
